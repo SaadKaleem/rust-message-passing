@@ -35,10 +35,13 @@ pub fn create_worker(id: u32) -> Worker {
     Worker { id }
 }
 
+/// The worker thread sends either an `INIT`, to indicate the start_time;
+/// While, `FIN` is sent indicating the end_time, when the task has been processed.
 enum MessageType {
     INIT,
-    FINAL,
+    FIN,
 }
+
 fn main() {
     let num_tasks: u32 = 10;
 
@@ -86,7 +89,7 @@ fn main() {
 
                         // Send completion message
                         sender_resp_clone
-                            .send((MessageType::FINAL, worker.id, task.id, Instant::now()))
+                            .send((MessageType::FIN, worker.id, task.id, Instant::now()))
                             .unwrap();
                     }
                     Err(_) => {
@@ -106,7 +109,7 @@ fn main() {
     }
 
     // Define the timeout duration
-    let timeout_duration = Duration::from_secs(3);
+    let timeout_duration = Duration::from_secs(2);
     let mut worker_task_map: HashMap<(u32, u32), Instant> = HashMap::new();
     let mut completed_count = 0;
 
@@ -117,7 +120,7 @@ fn main() {
             MessageType::INIT => {
                 worker_task_map.insert((worker_id, task_id), time);
             }
-            MessageType::FINAL => {
+            MessageType::FIN => {
                 // Calculate the elapsed time
                 if let Some(start_time) = worker_task_map.remove(&(worker_id, task_id)) {
                     let elapsed = time.duration_since(start_time);
